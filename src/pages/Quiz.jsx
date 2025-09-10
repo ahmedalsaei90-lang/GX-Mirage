@@ -141,7 +141,7 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
         }
       }
     }
-    alert(`Game Over! Final Score: ${score} pts | Coins Earned: +50`);
+    alert(`Game Ended! Final Score: ${score} pts | Coins Earned: +50`);
     navigate('/');
   };
 

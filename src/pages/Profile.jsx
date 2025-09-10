@@ -10,22 +10,41 @@ export function Profile() {
   const [password, setPassword] = useState('');
   const [language, setLanguage] = useState('en');
   const [showLogin, setShowLogin] = useState(false);
+  const [referralCode, setReferralCode] = useState(''); // For signup referral
+  const [appliedReferral, setAppliedReferral] = useState(false); // Flag to prevent multiple applies
 
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
-        const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
-        setProfile(data || {
-          email: user.email,
-          coins: 100,
-          rank: 1,
-          score: 0,
-          referral_code: 'GX-DEFAULT'
-        });
+        try {
+          const { data, error } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+          if (error) {
+            console.error('Profile fetch error:', error.message);
+            alert('Error loading profile—try refreshing.');
+            return;
+          }
+          if (!data) {
+            const insertRes = await supabase.from('users').insert({
+              id: user.id,
+              email: user.email,
+              coins: 100,
+              rank: 1,
+              score: 0,
+              lang: 'en'
+            });
+            if (insertRes.error) console.error('Profile insert error:', insertRes.error.message);
+            const { data: newData, error: fetchError } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
+            if (fetchError) console.error('New profile fetch error:', fetchError.message);
+            setProfile(newData);
+          } else {
+            setProfile(data);
+          }
+        } catch (err) {
+          console.error('Unexpected profile fetch error:', err);
+        }
       };
       fetchProfile();
 
-      // Realtime for profile updates (score, coins, rank)
       const channel = supabase.channel('user-profile');
       channel
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'users', filter: `id=eq.${user.id}` }, (payload) => {
@@ -36,6 +55,44 @@ export function Profile() {
       return () => channel.unsubscribe();
     }
   }, [user]);
+
+  useEffect(() => {
+    // Handle referral on signup (only once)
+    if (referralCode && user && !appliedReferral) {
+      setAppliedReferral(true); // Set flag to true
+      const applyReferral = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('users')
+            .select('id, coins')
+            .eq('referral_code', referralCode)
+            .single();
+          if (error) {
+            console.error('Referral lookup error:', error.message, 'Code:', referralCode);
+            alert('Referral error: Invalid code or server issue.');
+            return;
+          }
+          if (data && data.id !== user.id) {
+            await supabase.from('users').update({ coins: data.coins + 50 }).eq('id', data.id);
+            await supabase.from('users').update({ coins: user.coins + 50 }).eq('id', user.id);
+            const { error: txError } = await supabase.from('transactions').insert([
+              { user_id: data.id, type: 'referral', amount: 50 },
+              { user_id: user.id, type: 'referral', amount: 50 }
+            ]);
+            if (txError) console.error('Transaction insert error:', txError.message); // Log but don't alert
+            setReferralCode(''); // Clear after use
+            alert('Referral applied! +50 coins for both!');
+          } else {
+            alert('Invalid referral code or self-referral.');
+          }
+        } catch (err) {
+          console.error('Unexpected referral error:', err);
+          alert('Referral failed—try again later.');
+        }
+      };
+      applyReferral();
+    }
+  }, [referralCode, user, appliedReferral]);
 
   const updateLang = async (newLang) => {
     setLanguage(newLang);
@@ -56,7 +113,8 @@ export function Profile() {
 
   const handleSignUp = async () => {
     try {
-      await signUp(email, password);
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { referral_code: referralCode } } });
+      if (error) throw error;
       alert('Signed up! Check email to verify.');
     } catch (error) {
       alert('Signup error: ' + error.message);
@@ -88,6 +146,13 @@ export function Profile() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full p-2 border rounded focus:border-purple-500"
             />
+            <input
+              type="text"
+              placeholder="Referral Code (Optional)"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value)}
+              className="w-full p-2 border rounded focus:border-purple-500 mb-2"
+            />
             <button onClick={handleSignIn} className="w-full bg-green-600 text-white py-2 rounded">
               Login
             </button>
@@ -105,8 +170,8 @@ export function Profile() {
       <h1 className="text-2xl font-bold text-purple-700">Your Profile</h1>
       <div className="bg-white p-4 rounded-lg shadow-md space-y-2">
         <p><strong>Email:</strong> {profile?.email || user.email}</p>
-        <p><strong>Coins:</strong> {profile?.coins || user.coins || 100} 💰</p>
-        <p><strong>Rank:</strong> #{profile?.rank || user.rank || 1} | <strong>Total Score:</strong> {profile?.score || user.score || 0}</p>
+        <p><strong>Coins:</strong> {profile?.coins || 100} 💰</p>
+        <p><strong>Rank:</strong> #{profile?.rank || 1} | <strong>Total Score:</strong> {profile?.score || 0}</p>
         <p><strong>Referral Code:</strong> {profile?.referral_code || 'GX-DEFAULT'} (Share for 50 coins!)</p>
       </div>
       <div className="bg-white p-4 rounded-lg shadow-md">
