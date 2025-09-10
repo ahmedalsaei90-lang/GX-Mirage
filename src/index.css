@@ -1,0 +1,20 @@
+@tailwind base;  /* Installs Tailwind's base styles (resets, etc.) */
+@tailwind components;  /* Your custom components (empty for now) */
+@tailwind utilities;  /* All utility classes like bg-purple-50 */
+
+/* App-wide styles – vibrant purple */
+@layer base {
+  body {
+    @apply bg-purple-50 text-gray-800;  /* Light purple bg, dark text */
+    font-family: system-ui, -apple-system, sans-serif;  /* Clean, iOS-like font */
+  }
+}
+
+.purple-gradient {  /* Custom class for nav – vibrant gradient */
+  background: linear-gradient(135deg, #8B5CF6 0%, #DDA0DD 100%);
+  color: white;
+}
+
+button {
+  @apply transition-colors duration-200;  /* Smooth hover, no heavy anim */
+}
