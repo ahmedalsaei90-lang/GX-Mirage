@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { generateQuestions } from '../services/openai';
 import { supabase } from '../supabase';
@@ -18,7 +17,7 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
   const [loading, setLoading] = useState(!propQuestions);
   const [gameEnded, setGameEnded] = useState(false);
   const [room, setRoom] = useState(null);
-  const [imageSrc, setImageSrc] = useState('');  // State for current image URL
+  const [imageSrc, setImageSrc] = useState('');
   const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
@@ -66,7 +65,6 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
     }
   }, [timer, gameEnded, isBattle, roomId, room]);
 
-  // Load image for current question
   useEffect(() => {
     const q = questions[currentQ];
     if (q && q.image_desc) {
@@ -83,15 +81,13 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
     if (q.image_desc) {
       try {
         const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q.image_desc)}&per_page=1`, {
-          headers: {
-            Authorization: import.meta.env.VITE_PEXELS_API_KEY
-          }
+          headers: { Authorization: import.meta.env.VITE_PEXELS_API_KEY }
         });
         const data = await response.json();
         if (data.photos && data.photos.length > 0) {
           setImageSrc(data.photos[0].src.medium);
         } else {
-          setImageSrc(`https://picsum.photos/300/200?random&blur=0.5?${q.image_desc || category}`);  // Final fallback
+          setImageSrc(`https://picsum.photos/300/200?random&blur=0.5?${q.image_desc || category}`);
         }
       } catch (err) {
         console.error('Pexels error:', err);
@@ -180,7 +176,19 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
 
   const q = questions[currentQ];
 
-  if (gameEnded) return <div className="p-4 text-purple-600">Game Ended – Check Profile!</div>;
+  if (gameEnded) {
+    return (
+      <div className="p-4 text-center space-y-4">
+        <h1 className="text-2xl font-bold text-purple-700">Game Ended</h1>
+        <p className="text-purple-600">Final Score: {score} pts</p>
+        <p className="text-purple-600">Coins Earned: +50</p>
+        <p className="text-purple-600">Check Profile for Updates!</p>
+        <button onClick={() => navigate('/')} className="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700">
+          Back to Home
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 max-w-md mx-auto space-y-4 bg-purple-50 min-h-screen">
@@ -200,7 +208,8 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
           />
         </div>
       )}
-      <div className="bg-white p-4 rounded-lg shadow-md">
+      <div className="bg-white p-4 rounded-lg shadow-md overflow-y-auto max-h-[50vh]">
+        {/* Scrollable area to prevent overlap with bottom bar */}
         <p className="text-lg font-medium mb-4">{q.question}</p>
         <div className="space-y-2">
           {q.options.map((opt, i) => (
