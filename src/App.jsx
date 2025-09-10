@@ -8,21 +8,21 @@ import { Quiz } from './pages/Quiz';
 import { Leaderboard } from './pages/Leaderboard';
 import { Store } from './pages/Store';
 import { QuizZone } from './pages/QuizZone';
-import { PlayZone } from './pages/PlayZone';
+import { PlayZone } from './pages/PlayZone';  // <-- Added
 
 export function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          <Route element={<Layout />}>{/* Wrap all routes with Layout (adds header + bottom nav) */}
+          <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/quiz/:category" element={<Quiz />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/store" element={<Store />} />
             <Route path="/quiz-zone" element={<QuizZone />} />
-            <Route path="/play-zone" element={<PlayZone />} />
+            <Route path="/play-zone" element={<PlayZone />} />  // -- Added
           </Route>
         </Routes>
       </Router>
