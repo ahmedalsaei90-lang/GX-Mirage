@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '../supabase';
 import { useAuth } from '../hooks/useAuth';
 
-export function Store() {  // Named export (no default)
+export function Store() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,24 +43,24 @@ export function Store() {  // Named export (no default)
     setLoading(false);
   };
 
-  if (!user) return <div className="p-4 text-purple-600">Login to buy coins!</div>;
+  if (!user) return <div className="p-4 text-purple-700 dark:text-white">Login to buy coins!</div>;
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-3xl font-bold text-purple-700">Coin Store (USD)</h1>
-      <p className="text-purple-600">Current Coins: {user.coins} 💰</p>
+      <h1 className="text-3xl font-bold text-purple-700 dark:text-purple-300">Coin Store (USD)</h1>
+      <p className="text-purple-600 dark:text-purple-300">Current Coins: {user.coins} 💰</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {packs.map((pack) => (
-          <div key={pack.id} className="bg-white p-4 rounded-lg shadow-md text-center">
-            <p>{pack.coins ? `${pack.coins} Coins Pack` : 'Remove Ads (Lifetime)'}</p>
-            <p className="text-3xl">${pack.usd}</p>
-            <button onClick={() => buyPack(pack)} disabled={loading} className="bg-purple-600 text-white px-4 py-2 rounded mt-2 disabled:opacity-50">
+          <div key={pack.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md text-center transition-colors duration-200">
+            <p className="text-black dark:text-white">{pack.coins ? `${pack.coins} Coins Pack` : 'Remove Ads (Lifetime)'}</p>
+            <p className="text-3xl text-black dark:text-white">${pack.usd}</p>
+            <button onClick={() => buyPack(pack)} disabled={loading} className="bg-purple-600 text-white px-4 py-2 rounded mt-2 disabled:opacity-50 hover:bg-purple-700">
               {loading ? 'Processing...' : 'Buy Now'}
             </button>
           </div>
         ))}
       </div>
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-300">{error}</p>}
     </div>
   );
 }

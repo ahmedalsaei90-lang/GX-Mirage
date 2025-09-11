@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { generateQuestions } from '../services/openai';
 import { supabase } from '../supabase';
@@ -78,7 +79,7 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
 
   const handleImageError = async (e) => {
     const q = questions[currentQ];
-    if (q.image_desc) {
+    if (q && q.image_desc) {
       try {
         const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(q.image_desc)}&per_page=1`, {
           headers: { Authorization: import.meta.env.VITE_PEXELS_API_KEY }
@@ -141,7 +142,7 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
         }
       }
     }
-    alert(`Game Ended! Final Score: ${score} pts | Coins Earned: +50`);
+    alert(`Game Over! Final Score: ${score} pts | Coins Earned: +50`);
     navigate('/');
   };
 
@@ -159,78 +160,69 @@ export function Quiz({ isBattle = false, roomId, questions: propQuestions }) {
 
   const submitAnswer = (index) => {
     setSelected(index);
-    const correct = index === questions[currentQ]?.correct;
-    if (correct) {
-      const newScore = score + 100 + (timer * 2);
-      setScore(newScore);
-      if (isBattle && room) {
-        const updatedPlayers = room.players.map(p => p.user_id === user.id ? { ...p, score: newScore } : p);
-        supabase.from('battle_rooms').update({ players: updatedPlayers }).eq('id', roomId);
-      }
-    }
-    setTimeout(() => nextQuestion(correct), 1500);
   };
 
-  if (loading) return <div className="p-4 text-purple-600 text-center">Generating Questions...</div>;
-  if (!questions.length) return <div className="p-4 text-red-600">No questions – try again!</div>;
+  const confirmAnswer = () => {
+    if (selected !== null) {
+      const correct = selected === questions[currentQ]?.correct;
+      nextQuestion(correct);
+    }
+  };
+
+  if (loading) return <div className="p-4 text-purple-700 dark:text-white text-center">Generating Questions...</div>;
+  if (!questions.length) return <div className="p-4 text-red-600 dark:text-red-300">No questions – try again!</div>;
 
   const q = questions[currentQ];
 
-  if (gameEnded) {
-    return (
-      <div className="p-4 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-purple-700">Game Ended</h1>
-        <p className="text-purple-600">Final Score: {score} pts</p>
-        <p className="text-purple-600">Coins Earned: +50</p>
-        <p className="text-purple-600">Check Profile for Updates!</p>
-        <button onClick={() => navigate('/')} className="bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700">
-          Back to Home
-        </button>
-      </div>
-    );
-  }
+  if (gameEnded) return <div className="p-4 text-purple-700 dark:text-white">Game Ended – Check Profile!</div>;
 
   return (
-    <div className="p-4 max-w-md mx-auto space-y-4 bg-purple-50 min-h-screen">
+    <div className="p-4 max-w-md mx-auto space-y-4 bg-white dark:bg-gray-800 min-h-screen transition-colors duration-200">
       <div className="text-center">
-        <h1 className="text-2xl font-bold text-purple-700">{isBattle ? 'Battle' : category} Quiz</h1>
-        <p className="text-purple-600">Q {currentQ + 1}/{questions.length} | Score: {score} | Time: {timer}s | Lifelines: {lifelines}</p>
+        <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">{isBattle ? 'Battle' : category} Quiz</h1>
+        <p className="text-purple-600 dark:text-purple-300">Q {currentQ + 1}/{questions.length} | Score: {score} | Time: {timer}s | Lifelines: {lifelines}</p>
       </div>
       {q.image_desc && (
         <div className="relative">
-          {imageLoading && <div className="absolute inset-0 flex items-center justify-center bg-gray-200 rounded">Loading Image...</div>}
+          {imageLoading && <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded">Loading Image...</div>}
           <img
-            src={imageSrc}
+            src={`https://source.unsplash.com/300/200/?${q.image_desc}`}
             alt="Quiz Image"
-            className="w-full rounded"
+            className="w-full rounded shadow-md"
             onLoad={() => setImageLoading(false)}
             onError={handleImageError}
           />
         </div>
       )}
-      <div className="bg-white p-4 rounded-lg shadow-md overflow-y-auto max-h-[50vh]">
-        {/* Scrollable area to prevent overlap with bottom bar */}
-        <p className="text-lg font-medium mb-4">{q.question}</p>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md transition-colors duration-200">
+        <p className="text-lg font-medium mb-4 text-black dark:text-white">{q.question}</p>
         <div className="space-y-2">
           {q.options.map((opt, i) => (
             <button
               key={i}
               onClick={() => submitAnswer(i)}
-              disabled={selected !== null}
               className={`w-full p-3 rounded text-left ${
-                selected === i ? (i === q.correct ? 'bg-green-200' : 'bg-red-200') : 'bg-purple-100 hover:bg-purple-200'
-              }`}
+                selected === i ? 'border-2 border-purple-500' : 'bg-purple-100 dark:bg-gray-700 hover:bg-purple-200 dark:hover:bg-gray-600'
+              } text-black dark:text-white transition-colors duration-200`}
             >
               {opt}
             </button>
           ))}
         </div>
+        {selected !== null && (
+          <button
+            onClick={confirmAnswer}
+            className="w-full mt-4 bg-green-600 text-white py-2 rounded hover:bg-green-700"
+          >
+            Confirm Answer
+          </button>
+        )}
       </div>
       <div className="flex justify-between">
         <button onClick={useLifeline} disabled={lifelines === 0} className="bg-yellow-500 text-white px-4 py-2 rounded disabled:opacity-50">
           Hint (50/50)
         </button>
-        <button onClick={() => nextQuestion(false)} className="bg-gray-300 px-4 py-2 rounded">
+        <button onClick={() => nextQuestion(false)} className="bg-gray-300 dark:bg-gray-600 px-4 py-2 rounded text-black dark:text-white">
           Skip
         </button>
       </div>

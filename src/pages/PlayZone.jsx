@@ -1,9 +1,9 @@
-import React from 'react';  // <-- Added this to fix the error
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../supabase';
 import { generateQuestions } from '../services/openai';
-import { Quiz } from './Quiz';  // Reuse Quiz for battle mode
+import { Quiz } from './Quiz';
 
 export function PlayZone() {
   const { user } = useAuth();
@@ -20,15 +20,15 @@ export function PlayZone() {
     setCreating(true);
     setError('');
     const { data: userData } = await supabase.from('users').update({ coins: user.coins - 5 }).eq('id', user.id).select();
-    const newPin = Math.floor(1000 + Math.random() * 9000).toString();  // 4-digit PIN
-    const questions = await generateQuestions(category, 'en', 10, 'medium');  // Gen Qs for battle
+    const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+    const questions = await generateQuestions(category, 'en', 10, 'medium', { includeImage: true });
     const { data: roomData, error } = await supabase.from('battle_rooms').insert({
       pin: newPin,
       category,
       entry_fee: 5,
       players: [{ user_id: user.id, score: 0, name: user.email.split('@')[0] || 'Player' }],
       status: 'waiting',
-      questions  // Store Qs in room for sync
+      questions
     }).select().single();
     if (error) {
       setError(error.message);
@@ -54,11 +54,11 @@ export function PlayZone() {
     const updatedPlayers = [...roomData.players, { user_id: user.id, score: 0, name: user.email.split('@')[0] || 'Player' }];
     let newStatus = 'waiting';
     if (updatedPlayers.length >= 2) {
-      newStatus = 'playing';  // Auto-start game
+      newStatus = 'playing';
     }
     const { error: updateError } = await supabase.from('battle_rooms').update({
       players: updatedPlayers,
-      status: newStatus  // Set to playing if 2+ players
+      status: newStatus
     }).eq('id', roomData.id);
     if (updateError) {
       setError(updateError.message);
@@ -92,16 +92,16 @@ export function PlayZone() {
     setError('');
   };
 
-  if (!user) return <div className="p-4 text-purple-600">Login to play battles!</div>;
+  if (!user) return <div className="p-4 text-purple-700 dark:text-white">Login to play battles!</div>;
 
   if (room) {
     return (
       <div className="p-4">
-        <h1 className="text-2xl font-bold text-purple-700">Battle Room {room.pin}</h1>
-        <p>Category: {room.category} | Players: {room.players.length}/8 | Status: {room.status}</p>
+        <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">Battle Room {room.pin}</h1>
+        <p className="text-black dark:text-white">Category: {room.category} | Players: {room.players.length}/8 | Status: {room.status}</p>
         <ul className="space-y-2">
           {room.players.map((p, i) => (
-            <li key={i} className="bg-white p-2 rounded">Player {i+1}: {p.name} - Score: {p.score}</li>
+            <li key={i} className="bg-white dark:bg-gray-800 p-2 rounded text-black dark:text-white">Player {i+1}: {p.name} - Score: {p.score}</li>
           ))}
         </ul>
         {room.status === 'waiting' && room.players.length < 8 && (
@@ -114,23 +114,23 @@ export function PlayZone() {
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-2xl font-bold text-purple-700">Play Zone</h1>
-      <div className="bg-white p-4 rounded-lg shadow-md">
-        <h2 className="text-purple-600">Create Random Battle</h2>
-        <select className="w-full p-2 border rounded mb-2">
+      <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">Play Zone</h1>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h2 className="text-purple-600 dark:text-purple-300">Create Random Battle</h2>
+        <select className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white">
           <option>Sports</option>
           <option>General Knowledge</option>
         </select>
-        <p>Entry Fee: 5 Coins</p>
+        <p className="text-black dark:text-white">Entry Fee: 5 Coins</p>
         <button onClick={() => createRoom()} disabled={creating} className="w-full bg-purple-600 text-white py-2 rounded disabled:opacity-50">
           {creating ? 'Creating...' : 'Create & Play'}
         </button>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow-md">
-        <h2 className="text-purple-600">Join with PIN</h2>
-        <input type="text" placeholder="Enter 4-digit PIN" value={pin} onChange={(e) => setPin(e.target.value)} className="w-full p-2 border rounded mb-2" />
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h2 className="text-purple-600 dark:text-purple-300">Join with PIN</h2>
+        <input type="text" placeholder="Enter 4-digit PIN" value={pin} onChange={(e) => setPin(e.target.value)} className="w-full p-2 border rounded mb-2 dark:bg-gray-700 dark:text-white" />
         <button onClick={joinRoom} className="w-full bg-green-600 text-white py-2 rounded">Join Room</button>
-        {error && <p className="text-red-600 mt-2">{error}</p>}
+        {error && <p className="text-red-600 dark:text-red-300 mt-2">{error}</p>}
       </div>
     </div>
   );

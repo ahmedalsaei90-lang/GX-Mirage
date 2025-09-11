@@ -1,14 +1,18 @@
 import React from 'react';
+import { useContext } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 import { useAuth } from '../hooks/useAuth';
 import { generateQuestions } from '../services/openai';
+import { Link } from 'react-router-dom';
 
 export function Home() {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useContext(ThemeContext);
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold text-purple-700 text-center">Welcome to GX-Mirage! 🎮</h1>
-      <div className="bg-white p-6 rounded-lg shadow-md text-center purple-gradient text-white">
+      <h1 className="text-3xl font-bold text-purple-700 dark:text-purple-300 text-center">Welcome to GX-Mirage! 🎮</h1>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center purple-gradient text-white dark:text-white">
         <p className="text-lg">Your Trivia Adventure Starts Here!</p>
         {user ? (
           <div>
@@ -19,9 +23,14 @@ export function Home() {
           <p>Login to see your stats!</p>
         )}
       </div>
-      <div className="bg-purple-100 p-4 rounded-lg">
-        <h2 className="text-purple-700 font-semibold">Quick Battles</h2>
-        <p>Join random matches for coins! Entry: 5 coins</p>
+      <div className="bg-purple-100 dark:bg-gray-700 p-4 rounded-lg">
+        <h2 className="text-purple-700 dark:text-purple-300 font-semibold">Daily Challenge</h2>
+        <p className="text-black dark:text-white">Play today for +100 coins!</p>
+        <Link to="/daily-quiz" className="block mt-2 bg-green-600 text-white py-2 rounded hover:bg-green-700">Start Daily Quiz</Link>
+      </div>
+      <div className="bg-purple-100 dark:bg-gray-700 p-4 rounded-lg">
+        <h2 className="text-purple-700 dark:text-purple-300 font-semibold">Quick Battles</h2>
+        <p className="text-black dark:text-white">Join random matches for coins! Entry: 5 coins</p>
       </div>
       <div className="text-center">
         <button 

@@ -2,8 +2,9 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../supabase';
+import { Link } from 'react-router-dom';
 
-export function Profile() {
+export function Profile() { // Named export
   const { user, loading, signUp, signIn, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
   const [email, setEmail] = useState('');
@@ -11,36 +12,28 @@ export function Profile() {
   const [language, setLanguage] = useState('en');
   const [showLogin, setShowLogin] = useState(false);
   const [referralCode, setReferralCode] = useState(''); // For signup referral
-  const [appliedReferral, setAppliedReferral] = useState(false); // Flag to prevent multiple applies
+  const [dailyStatus, setDailyStatus] = useState({ completed: false, score: 0 });
 
   useEffect(() => {
     if (user) {
       const fetchProfile = async () => {
-        try {
-          const { data, error } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
-          if (error) {
-            console.error('Profile fetch error:', error.message);
-            alert('Error loading profile—try refreshing.');
-            return;
-          }
-          if (!data) {
-            const insertRes = await supabase.from('users').insert({
-              id: user.id,
-              email: user.email,
-              coins: 100,
-              rank: 1,
-              score: 0,
-              lang: 'en'
-            });
-            if (insertRes.error) console.error('Profile insert error:', insertRes.error.message);
-            const { data: newData, error: fetchError } = await supabase.from('users').select('*').eq('id', user.id).maybeSingle();
-            if (fetchError) console.error('New profile fetch error:', fetchError.message);
-            setProfile(newData);
-          } else {
-            setProfile(data);
-          }
-        } catch (err) {
-          console.error('Unexpected profile fetch error:', err);
+        const { data: userData } = await supabase.from('users').select('*').eq('id', user.id).single();
+        setProfile(userData || {
+          email: user.email,
+          coins: 100,
+          rank: 1,
+          score: 0,
+          referral_code: 'GX-' + Math.floor(10000 + Math.random() * 90000).toString()
+        });
+
+        // Check daily quiz status
+        const { data: dailyData } = await supabase.from('daily_quizzes').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(1).single();
+        const now = new Date();
+        const today = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()).toISOString();
+        if (dailyData && dailyData.completed_at && new Date(dailyData.completed_at).toISOString().split('T')[0] === today.split('T')[0]) {
+          setDailyStatus({ completed: true, score: dailyData.score });
+        } else {
+          setDailyStatus({ completed: false, score: 0 });
         }
       };
       fetchProfile();
@@ -55,44 +48,6 @@ export function Profile() {
       return () => channel.unsubscribe();
     }
   }, [user]);
-
-  useEffect(() => {
-    // Handle referral on signup (only once)
-    if (referralCode && user && !appliedReferral) {
-      setAppliedReferral(true); // Set flag to true
-      const applyReferral = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('users')
-            .select('id, coins')
-            .eq('referral_code', referralCode)
-            .single();
-          if (error) {
-            console.error('Referral lookup error:', error.message, 'Code:', referralCode);
-            alert('Referral error: Invalid code or server issue.');
-            return;
-          }
-          if (data && data.id !== user.id) {
-            await supabase.from('users').update({ coins: data.coins + 50 }).eq('id', data.id);
-            await supabase.from('users').update({ coins: user.coins + 50 }).eq('id', user.id);
-            const { error: txError } = await supabase.from('transactions').insert([
-              { user_id: data.id, type: 'referral', amount: 50 },
-              { user_id: user.id, type: 'referral', amount: 50 }
-            ]);
-            if (txError) console.error('Transaction insert error:', txError.message); // Log but don't alert
-            setReferralCode(''); // Clear after use
-            alert('Referral applied! +50 coins for both!');
-          } else {
-            alert('Invalid referral code or self-referral.');
-          }
-        } catch (err) {
-          console.error('Unexpected referral error:', err);
-          alert('Referral failed—try again later.');
-        }
-      };
-      applyReferral();
-    }
-  }, [referralCode, user, appliedReferral]);
 
   const updateLang = async (newLang) => {
     setLanguage(newLang);
@@ -121,17 +76,17 @@ export function Profile() {
     }
   };
 
-  if (loading) return <div className="p-4 text-purple-600">Loading...</div>;
+  if (loading) return <div className="p-4 text-purple-700 dark:text-white">Loading...</div>;
 
   if (!user) {
     return (
       <div className="p-4 max-w-md mx-auto space-y-4">
-        <h1 className="text-2xl font-bold text-purple-700 text-center">Login to GX-Mirage</h1>
+        <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300 text-center">Login to GX-Mirage</h1>
         <button onClick={() => setShowLogin(!showLogin)} className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700">
           {showLogin ? 'Cancel' : 'Show Login Form'}
         </button>
         {showLogin && (
-          <div className="bg-white p-4 rounded-lg shadow-md space-y-2">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md space-y-2">
             <input
               type="email"
               placeholder="Email"
@@ -167,15 +122,19 @@ export function Profile() {
 
   return (
     <div className="p-4 space-y-4 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold text-purple-700">Your Profile</h1>
-      <div className="bg-white p-4 rounded-lg shadow-md space-y-2">
-        <p><strong>Email:</strong> {profile?.email || user.email}</p>
-        <p><strong>Coins:</strong> {profile?.coins || 100} 💰</p>
-        <p><strong>Rank:</strong> #{profile?.rank || 1} | <strong>Total Score:</strong> {profile?.score || 0}</p>
-        <p><strong>Referral Code:</strong> {profile?.referral_code || 'GX-DEFAULT'} (Share for 50 coins!)</p>
+      <h1 className="text-2xl font-bold text-purple-700 dark:text-purple-300">Your Profile</h1>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md space-y-2">
+        <p className="text-black dark:text-white"><strong>Email:</strong> {profile?.email || user.email}</p>
+        <p className="text-black dark:text-white"><strong>Coins:</strong> {profile?.coins || user.coins || 100} 💰</p>
+        <p className="text-black dark:text-white"><strong>Rank:</strong> #{profile?.rank || user.rank || 1} | <strong>Total Score:</strong> {profile?.score || user.score || 0}</p>
+        <p className="text-black dark:text-white"><strong>Referral Code:</strong> {profile?.referral_code || 'GX-DEFAULT'} (Share for 50 coins!)</p>
+        <p className="text-black dark:text-white">
+          Daily Quiz: {dailyStatus.completed ? `Completed today! Score: ${dailyStatus.score}` : 
+            <Link to="/daily-quiz" className="text-blue-600 dark:text-blue-300">Play now for +100 coins!</Link>}
+        </p>
       </div>
-      <div className="bg-white p-4 rounded-lg shadow-md">
-        <h2 className="text-purple-700 font-semibold mb-2">Language</h2>
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+        <h2 className="text-purple-700 dark:text-purple-300 font-semibold mb-2">Language</h2>
         <label className="block mb-1">
           <input type="radio" name="lang" checked={language === 'en'} onChange={() => updateLang('en')} className="mr-2" />
           English
