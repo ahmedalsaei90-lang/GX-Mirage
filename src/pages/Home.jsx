@@ -12,7 +12,7 @@ export function Home() {
   return (
     <div className="space-y-4">
       <h1 className="text-3xl font-bold text-purple-700 dark:text-purple-300 text-center">Welcome to GX-Mirage! 🎮</h1>
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center purple-gradient text-white dark:text-white">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center purple-gradient text-white dark:text-gray-200">
         <p className="text-lg">Your Trivia Adventure Starts Here!</p>
         {user ? (
           <div>

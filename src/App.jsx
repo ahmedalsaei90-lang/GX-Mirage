@@ -4,7 +4,7 @@ import { AuthProvider } from './hooks/useAuth';
 import { ThemeProvider } from './context/ThemeContext';
 import { Layout } from './Layout';
 import { Home } from './pages/Home';
-import { Profile } from './pages/Profile'; // Confirm named export
+import { Profile } from './pages/Profile';
 import { Quiz } from './pages/Quiz';
 import { Leaderboard } from './pages/Leaderboard';
 import { Store } from './pages/Store';

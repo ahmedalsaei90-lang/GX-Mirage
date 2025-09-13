@@ -6,7 +6,7 @@ export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
 
   useEffect(() => {
-    console.log('Theme switched to', theme);  // Added for debug
+    console.log('Theme updated to:', theme); // Debug log
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -16,7 +16,8 @@ export function ThemeProvider({ children }) {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
+    console.log('Toggling theme from:', theme); // Debug log
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
 
   return (
